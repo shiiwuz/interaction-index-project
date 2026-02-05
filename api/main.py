@@ -17,11 +17,17 @@ from urllib.parse import urlparse
 
 import lxml.html
 import numpy as np
+import urllib.error
 import urllib.request
 import xgboost as xgb
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+
+UA = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/120 Safari/537.36"
+)
 
 URL_RE = re.compile(r"https?://[^\s)\]>\"']+", re.IGNORECASE)
 DATE_RE = re.compile(r"\b\d{1,2}\s*月\s*\d{1,2}\s*日\b")
@@ -124,17 +130,29 @@ def extract_title_summary(text: str) -> tuple[str, str]:
 def fetch_embeddings(base_url: str, api_key: str, model: str, texts: list[str]) -> np.ndarray:
     url = base_url.rstrip("/") + "/v1/embeddings"
     payload = json.dumps({"model": model, "input": texts}).encode("utf-8")
-    req = urllib.request.Request(
-        url,
-        data=payload,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}",
-        },
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=60) as r:
-        obj = json.loads(r.read())
+
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        # Some gateways/WAFs block Python default UA.
+        "User-Agent": os.environ.get("EMBEDDINGS_USER_AGENT", UA),
+        "Authorization": f"Bearer {api_key}",
+    }
+
+    req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
+
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            obj = json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        # Bubble up a useful error string for debugging.
+        body = ""
+        try:
+            body = e.read().decode("utf-8", "ignore")
+        except Exception:
+            body = ""
+        raise RuntimeError(f"embeddings_http_error: {e.code} {e.reason}; body={body[:500]}")
+
     data = sorted(obj.get("data") or [], key=lambda d: d.get("index", 0))
     return np.asarray([d["embedding"] for d in data], dtype=np.float32)
 
@@ -237,7 +255,7 @@ class PredictRequest(BaseModel):
     ts: Optional[str] = Field(default=None, description="ISO8601 timestamp override")
 
 
-app = FastAPI(title="interaction-index-api", version="0.2.1")
+app = FastAPI(title="interaction-index-api", version="0.2.2")
 
 _predictor: Optional[Predictor] = None
 
