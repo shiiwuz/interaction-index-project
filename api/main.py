@@ -237,7 +237,7 @@ class PredictRequest(BaseModel):
     ts: Optional[str] = Field(default=None, description="ISO8601 timestamp override")
 
 
-app = FastAPI(title="interaction-index-api", version="0.2.0")
+app = FastAPI(title="interaction-index-api", version="0.2.1")
 
 _predictor: Optional[Predictor] = None
 
