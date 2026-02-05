@@ -1,0 +1,8 @@
+# Minimal runtime deps (prediction)
+numpy
+lxml
+xgboost
+
+# Optional (calibration/plots)
+scikit-learn
+matplotlib

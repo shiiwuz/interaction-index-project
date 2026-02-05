@@ -1,0 +1,46 @@
+{
+  "report": {
+    "seed": 42,
+    "params": {
+      "n_estimators": 2500,
+      "learning_rate": 0.05,
+      "max_depth": 6,
+      "early_stopping_rounds": 100,
+      "log_every": 50
+    },
+    "n": {
+      "all": 13751,
+      "train": 11000,
+      "val": 1375,
+      "test": 1376
+    },
+    "dims": {
+      "emb": 1024,
+      "total": 3076
+    },
+    "fit_seconds": 1182.5842616558075,
+    "best": {
+      "iteration": 1148,
+      "val_rmse": 0.41015491128913173
+    },
+    "metrics": {
+      "train": {
+        "mae": 0.018041570574383842,
+        "rmse": 0.02337134924597199,
+        "spearman": 0.9993210811874771
+      },
+      "val": {
+        "mae": 0.3207197558663108,
+        "rmse": 0.4101549107250474,
+        "spearman": 0.6193942686743541
+      },
+      "test": {
+        "mae": 0.3346944738959157,
+        "rmse": 0.42222312764314246,
+        "spearman": 0.6276437332743763
+      }
+    }
+  },
+  "model": "outputs/pref_xgb_fe_report.xgb.json",
+  "cache": "outputs/pref_xgb_fe_cache_seed42.npz"
+}

@@ -1,0 +1,35 @@
+{
+  "space": "y=log1p(reactions_total)",
+  "source": "outputs/pref_xgb_fe_cache_seed42.npz",
+  "n": 13751,
+  "scale": {
+    "mu": 5.686892635856452,
+    "sigma": 0.5364802328808458,
+    "y_mu_minus_2sigma": 4.613932170094761,
+    "y_mu_minus_1sigma": 5.150412402975606,
+    "y_mu_plus_1sigma": 6.2233728687372984,
+    "y_mu_plus_2sigma": 6.759853101618144
+  },
+  "stars_rule": [
+    {
+      "stars": 1,
+      "cond": "y < mu-2sigma"
+    },
+    {
+      "stars": 2,
+      "cond": "mu-2sigma <= y < mu-1sigma"
+    },
+    {
+      "stars": 3,
+      "cond": "mu-1sigma <= y < mu+1sigma"
+    },
+    {
+      "stars": 4,
+      "cond": "mu+1sigma <= y < mu+2sigma"
+    },
+    {
+      "stars": 5,
+      "cond": "y >= mu+2sigma"
+    }
+  ]
+}

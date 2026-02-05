@@ -1,0 +1,54 @@
+{
+  "space": "y=log1p(reactions_total)",
+  "method": "decile_quantiles",
+  "source": "outputs/pref_xgb_fe_cache_seed42.npz",
+  "n": 13751,
+  "thresholds": [
+    {
+      "percentile": 10,
+      "y_threshold": 4.9972124099731445,
+      "reactions_threshold": 147.00002015893773
+    },
+    {
+      "percentile": 20,
+      "y_threshold": 5.2364420890808105,
+      "reactions_threshold": 187.00002373516344
+    },
+    {
+      "percentile": 30,
+      "y_threshold": 5.407171726226807,
+      "reactions_threshold": 221.9999899129716
+    },
+    {
+      "percentile": 40,
+      "y_threshold": 5.5606818199157715,
+      "reactions_threshold": 259.000049114068
+    },
+    {
+      "percentile": 50,
+      "y_threshold": 5.693732261657715,
+      "reactions_threshold": 296.00003648794177
+    },
+    {
+      "percentile": 60,
+      "y_threshold": 5.828945636749268,
+      "reactions_threshold": 339.00000650728066
+    },
+    {
+      "percentile": 70,
+      "y_threshold": 5.976350784301758,
+      "reactions_threshold": 392.99995075150974
+    },
+    {
+      "percentile": 80,
+      "y_threshold": 6.142037391662598,
+      "reactions_threshold": 463.99999352498725
+    },
+    {
+      "percentile": 90,
+      "y_threshold": 6.364750862121582,
+      "reactions_threshold": 580.000061161682
+    }
+  ],
+  "rule": "score10 = 1 + count(thresholds where yhat >= y_threshold)  (clamped 1..10)"
+}
