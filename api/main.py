@@ -317,7 +317,14 @@ def _startup() -> None:
 
 @app.get("/health")
 def health() -> dict[str, Any]:
-    return {"ok": True, "pow": True}
+    # Do not leak secrets; just show whether required config is present.
+    base_url = os.environ.get("EMBEDDINGS_BASE_URL")
+    api_key = os.environ.get("EMBEDDINGS_API_KEY") or os.environ.get("OPENAI_API_KEY")
+    return {
+        "ok": True,
+        "pow": True,
+        "embeddings_configured": bool(base_url and api_key),
+    }
 
 
 @app.get("/pow/challenge")
@@ -388,6 +395,11 @@ def predict(req: PredictRequest) -> dict[str, Any]:
     if ts_utc is None:
         ts_utc = datetime.now(timezone.utc)
 
-    out = _predictor.predict(base_url=base_url, api_key=api_key, emb_model=emb_model, text=text, ts_utc=ts_utc)
+    try:
+        out = _predictor.predict(base_url=base_url, api_key=api_key, emb_model=emb_model, text=text, ts_utc=ts_utc)
+    except Exception as e:
+        # Most common cause: embeddings backend not reachable from the deployed container.
+        raise HTTPException(status_code=502, detail=f"predict_failed: {type(e).__name__}: {e}")
+
     out["input"] = {"tme_url": req.tme_url, "text": req.text}
     return out
