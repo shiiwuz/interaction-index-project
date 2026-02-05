@@ -56,7 +56,29 @@ More examples: `examples/`
 
 ## API (FastAPI + Docker)
 
-Build and run locally:
+### Proof-of-work (required)
+
+Every request (except `/health` and `/pow/challenge`) requires a short proof-of-work.
+
+1) Get a challenge:
+
+```bash
+curl -s http://localhost:8000/pow/challenge
+```
+
+2) Find a `nonce` such that:
+
+- `sha256("{pow_id}:{challenge}:{nonce}")` (hex) starts with `difficulty` leading `0` chars.
+
+3) Send the request with headers:
+
+- `X-PoW-Id: <pow_id>`
+- `X-PoW-Nonce: <nonce>`
+
+This is a simple RPM throttle (target ~1 request / ~2s depending on client CPU).
+Difficulty/TTL can be tuned via env vars: `POW_DIFFICULTY`, `POW_TTL_SECONDS`.
+
+### Build and run locally
 
 ```bash
 cp .env.example .env

@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import os
 import re
+import secrets
+import threading
+import time
 from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -15,7 +19,8 @@ import lxml.html
 import numpy as np
 import urllib.request
 import xgboost as xgb
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 URL_RE = re.compile(r"https?://[^\s)\]>\"']+", re.IGNORECASE)
@@ -232,9 +237,74 @@ class PredictRequest(BaseModel):
     ts: Optional[str] = Field(default=None, description="ISO8601 timestamp override")
 
 
-app = FastAPI(title="interaction-index-api", version="0.1.0")
+app = FastAPI(title="interaction-index-api", version="0.2.0")
 
 _predictor: Optional[Predictor] = None
+
+# In-memory PoW challenges (single-process). If you run multiple workers/replicas,
+# keep workers=1 or move this to Redis.
+_pow_lock = threading.Lock()
+_pow_challenges: dict[str, dict[str, Any]] = {}
+
+
+def _pow_config() -> dict[str, int]:
+    return {
+        # difficulty counts *hex* leading zeros in SHA256 hexdigest
+        "difficulty": int(os.environ.get("POW_DIFFICULTY", "5")),
+        "ttl": int(os.environ.get("POW_TTL_SECONDS", "60")),
+    }
+
+
+def _pow_check(prefix_zeros: int, data: str) -> bool:
+    h = hashlib.sha256(data.encode("utf-8")).hexdigest()
+    return h.startswith("0" * max(0, int(prefix_zeros)))
+
+
+def _client_ip(request: Request) -> str:
+    # Basic; if you're behind a trusted proxy, terminate TLS there and pass a trusted header.
+    return (request.client.host if request.client else "").strip() or "(unknown)"
+
+
+_EXEMPT_PATHS = {"/health", "/pow/challenge", "/docs", "/openapi.json", "/redoc"}
+
+
+@app.middleware("http")
+async def pow_middleware(request: Request, call_next):
+    if request.url.path in _EXEMPT_PATHS:
+        return await call_next(request)
+
+    pow_id = request.headers.get("x-pow-id")
+    pow_nonce = request.headers.get("x-pow-nonce")
+    if not pow_id or not pow_nonce:
+        return JSONResponse(
+            status_code=401,
+            content={
+                "error": "pow_required",
+                "hint": "Call GET /pow/challenge then include headers X-PoW-Id and X-PoW-Nonce on the request.",
+            },
+        )
+
+    ip = _client_ip(request)
+    now = time.time()
+
+    with _pow_lock:
+        ch = _pow_challenges.get(pow_id)
+        if not ch:
+            return JSONResponse(status_code=401, content={"error": "pow_invalid", "detail": "unknown challenge"})
+        if ch.get("used"):
+            return JSONResponse(status_code=401, content={"error": "pow_invalid", "detail": "challenge already used"})
+        if ch.get("ip") != ip:
+            return JSONResponse(status_code=401, content={"error": "pow_invalid", "detail": "challenge ip mismatch"})
+        if now > float(ch.get("expires_at", 0)):
+            return JSONResponse(status_code=401, content={"error": "pow_expired"})
+
+        data = f"{pow_id}:{ch['challenge']}:{pow_nonce}"
+        if not _pow_check(int(ch["difficulty"]), data):
+            return JSONResponse(status_code=401, content={"error": "pow_invalid", "detail": "bad nonce"})
+
+        ch["used"] = True
+
+    return await call_next(request)
 
 
 @app.on_event("startup")
@@ -247,7 +317,39 @@ def _startup() -> None:
 
 @app.get("/health")
 def health() -> dict[str, Any]:
-    return {"ok": True}
+    return {"ok": True, "pow": True}
+
+
+@app.get("/pow/challenge")
+def pow_challenge(request: Request) -> dict[str, Any]:
+    cfg = _pow_config()
+    pow_id = secrets.token_urlsafe(18)
+    challenge = secrets.token_hex(16)
+    ip = _client_ip(request)
+    now = time.time()
+    expires = now + cfg["ttl"]
+
+    with _pow_lock:
+        _pow_challenges[pow_id] = {
+            "challenge": challenge,
+            "difficulty": cfg["difficulty"],
+            "expires_at": expires,
+            "ip": ip,
+            "used": False,
+        }
+        # simple GC
+        for k in list(_pow_challenges.keys()):
+            if now > float(_pow_challenges[k].get("expires_at", 0)):
+                _pow_challenges.pop(k, None)
+
+    return {
+        "pow_id": pow_id,
+        "challenge": challenge,
+        "difficulty": cfg["difficulty"],
+        "expires_at": expires,
+        "algo": "sha256_hex_prefix_zeros",
+        "data_format": "{pow_id}:{challenge}:{nonce}",
+    }
 
 
 @app.post("/predict")
