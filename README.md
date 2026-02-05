@@ -84,7 +84,7 @@ Difficulty/TTL can be tuned via env vars: `POW_DIFFICULTY`, `POW_TTL_SECONDS`.
 cp .env.example .env
 # fill in EMBEDDINGS_BASE_URL + EMBEDDINGS_API_KEY
 
-docker compose up --build
+docker compose up -d
 curl -s http://localhost:8000/health
 ```
 

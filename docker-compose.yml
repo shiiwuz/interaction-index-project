@@ -1,11 +1,20 @@
 services:
   api:
-    build: .
+    image: ghcr.io/shiiwuz/interaction-index-api:latest
+    restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
+      # Required: embeddings provider (OpenAI-compatible)
       EMBEDDINGS_BASE_URL: ${EMBEDDINGS_BASE_URL}
       EMBEDDINGS_MODEL: ${EMBEDDINGS_MODEL:-bge-m3}
       EMBEDDINGS_API_KEY: ${EMBEDDINGS_API_KEY}
+
+      # Model artifacts inside the image
       MODEL_REPORT_PATH: ${MODEL_REPORT_PATH:-outputs/pref_xgb_fe_report.json}
       RATING_SCALE_PATH: ${RATING_SCALE_PATH:-outputs/pref_rating_scale_10pt.json}
+
+      # PoW throttle knobs
+      POW_DIFFICULTY: ${POW_DIFFICULTY:-5}
+      POW_TTL_SECONDS: ${POW_TTL_SECONDS:-60}
+      EMBED_CACHE_SIZE: ${EMBED_CACHE_SIZE:-2048}
