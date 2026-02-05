@@ -1,0 +1,11 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      EMBEDDINGS_BASE_URL: ${EMBEDDINGS_BASE_URL}
+      EMBEDDINGS_MODEL: ${EMBEDDINGS_MODEL:-bge-m3}
+      EMBEDDINGS_API_KEY: ${EMBEDDINGS_API_KEY}
+      MODEL_REPORT_PATH: ${MODEL_REPORT_PATH:-outputs/pref_xgb_fe_report.json}
+      RATING_SCALE_PATH: ${RATING_SCALE_PATH:-outputs/pref_rating_scale_10pt.json}

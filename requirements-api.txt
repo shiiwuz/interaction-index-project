@@ -1,0 +1,8 @@
+# API runtime deps
+fastapi
+uvicorn[standard]
+
+# Predictor deps
+numpy
+lxml
+xgboost

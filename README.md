@@ -53,3 +53,34 @@ uv run -p .venv/bin/python python3 skills/interaction-index-predictor/scripts/pr
 ```
 
 More examples: `examples/`
+
+## API (FastAPI + Docker)
+
+Build and run locally:
+
+```bash
+cp .env.example .env
+# fill in EMBEDDINGS_BASE_URL + EMBEDDINGS_API_KEY
+
+docker compose up --build
+curl -s http://localhost:8000/health
+```
+
+Predict with a text snippet:
+
+```bash
+curl -s http://localhost:8000/predict \
+  -H 'content-type: application/json' \
+  -d '{"text":"标题\n正文...\nhttps://example.com"}'
+```
+
+Predict from a Telegram public post link:
+
+```bash
+curl -s http://localhost:8000/predict \
+  -H 'content-type: application/json' \
+  -d '{"tme_url":"https://t.me/<channel>/<id>"}'
+```
+
+GitHub Actions will build + push to GHCR on every `main` push:
+- `ghcr.io/<owner>/interaction-index-api:latest`
