@@ -12,12 +12,17 @@ Predict an interaction index (expected emoji/reaction count) from:
   - 10-point deciles: `outputs/pref_rating_scale_10pt.json`
   - Legacy 5-star (mu/sigma): `outputs/pref_rating_scale.json`
 - OpenClaw skill folder: `skills/interaction-index-predictor/`
+- Telegram export cleaning script + cleaned JSONL:
+  - Cleaner: `scripts/clean_telegram_html_export.py`
+  - Output (included): `outputs/chat_clean_v3.jsonl`
 
 ## What's NOT included
 
 - The embeddings model weights (we call an OpenAI-compatible embeddings API at runtime).
 - Your `.env` secrets.
 - Training caches/checkpoints (they can be large and may contain derived data).
+
+Note: `outputs/chat_clean_v3.jsonl` contains message text from a Telegram export. Keep this repository private.
 
 ## Quick start
 

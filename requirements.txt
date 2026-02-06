@@ -3,6 +3,9 @@ numpy
 lxml
 xgboost
 
+# Optional (data cleaning)
+beautifulsoup4
+
 # Optional (calibration/plots)
 scikit-learn
 matplotlib
